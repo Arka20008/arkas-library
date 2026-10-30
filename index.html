@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arka's Library · Curved 3D Bookshelf of Interesting Reads</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #07080a;
+      --card-bg: rgba(18, 20, 26, 0.92);
+      --amber-glow: rgba(245, 158, 11, 0.25);
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-deep);
+      color: #e2e8f0;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    .font-serif-title {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .font-mono-code {
+      font-family: 'Space Mono', monospace;
+    }
+    .font-cinzel {
+      font-family: 'Cinzel', Georgia, serif;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090a0f;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #272a38;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #474d66;
+    }
+    .glow-amber {
+      box-shadow: 0 0 25px -5px rgba(217, 119, 6, 0.35);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.35);
+    }
+    .wood-card {
+      background: linear-gradient(135deg, rgba(30, 24, 18, 0.95) 0%, rgba(18, 15, 12, 0.98) 100%);
+      border: 1px solid rgba(180, 83, 9, 0.25);
+    }
+    .cursor-blink {
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    /* Smooth transitions */
+    .btn-topic {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-topic:hover {
+      transform: translateY(-2px);
+    }
+    /* 3D Canvas styles */
+    #canvas-container {
+      position: relative;
+      width: 100%;
+      height: 650px;
+      touch-action: pan-y;
+      user-select: none;
+    }
+    @media (max-width: 768px) {
+      #canvas-container {
+        height: 520px;
+      }
+    }
+    /* Modal Backdrop */
+    .glass-modal {
+      background: rgba(8, 10, 15, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="bg-[#07080a] text-slate-100 min-h-screen flex flex-col selection:bg-amber-600 selection:text-white">
+
+  <!-- TOP NOTIFICATION TOAST -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- HEADER -->
+  <header class="w-full border-b border-stone-800/80 bg-[#0a0c10]/90 backdrop-blur-md sticky top-0 z-40 px-4 py-3 sm:px-6">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Brand & Typewriter Heading -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 via-amber-700 to-amber-950 flex items-center justify-center border border-amber-500/30 shadow-lg shadow-amber-900/20 flex-shrink-0">
+          <svg class="w-5 h-5 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs uppercase tracking-widest font-semibold text-amber-500/90 font-mono-code">Arka's Library</span>
+            <span class="text-[10px] bg-stone-800 text-stone-400 px-1.5 py-0.5 rounded border border-stone-700">3D Interactive</span>
+          </div>
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-1 font-serif-title">
+            <span id="typewriter-text" class="text-amber-100">Welcome to Interesting Reads</span>
+            <span id="typewriter-cursor" class="cursor-blink text-amber-400">|</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Search Box & Action Controls -->
+      <div class="flex items-center flex-wrap justify-center sm:justify-end gap-2 w-full md:w-auto">
+        <!-- Search Input -->
+        <div class="relative flex-grow sm:flex-grow-0 sm:w-64">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="What are you looking for?" 
+            class="w-full pl-9 pr-8 py-1.5 text-xs sm:text-sm bg-stone-900/90 border border-stone-700/80 rounded-lg text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+            aria-label="What are you looking for?"
+          >
+          <button 
+            id="search-clear-btn" 
+            class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-stone-500 hover:text-stone-300"
+            title="Clear search"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Add Link / Essay Button -->
+        <button 
+          id="open-add-modal-btn" 
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white shadow-md shadow-amber-950/40 border border-amber-500/30 transition-all hover:scale-105 active:scale-95"
+          title="Add a new essay or link to the library"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>Add Essay</span>
+        </button>
+
+        <!-- Toggle View (3D vs 2D List) -->
+        <button 
+          id="toggle-view-btn" 
+          class="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-stone-900 border border-stone-800 hover:border-stone-700 text-stone-300 hover:text-white transition-all"
+          title="Toggle between 3D Curved Shelf and 2D List view"
+        >
+          <svg id="view-icon-3d" class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          <span id="view-mode-label">List View</span>
+        </button>
+
+        <!-- Reduced Motion Toggle -->
+        <button 
+          id="toggle-motion-btn" 
+          class="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-stone-900 border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-amber-400 transition-all"
+          title="Toggle still shelf (Reduced Motion)"
+        >
+          <span id="motion-indicator" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="motion-label" class="text-[11px]">Motion</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- TOPIC PILLS FILTER BAR -->
+  <section class="w-full bg-[#08090d]/80 border-b border-stone-900 px-4 py-2.5 sm:px-6 overflow-x-auto" aria-label="Topic Filter">
+    <div class="max-w-7xl mx-auto flex items-center gap-2 min-w-max">
+      <span class="text-xs font-semibold uppercase tracking-wider text-stone-400 flex items-center gap-1 mr-1 font-mono-code">
+        <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+        </svg>
+        Topics:
+      </span>
+      <div id="topics-container" class="flex items-center gap-1.5">
+        <!-- Populated via JavaScript: one button each -->
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN 3D EXPERIENCE STAGE -->
+  <main class="flex-grow flex flex-col relative w-full overflow-hidden" id="main-content">
+
+    <!-- 3D SCENE VIEW -->
+    <div id="view-3d-wrapper" class="relative w-full flex-grow flex flex-col">
+      
+      <!-- Interactive Instructions / Hint Overlay -->
+      <div class="absolute top-3 left-4 z-20 pointer-events-none flex flex-col gap-1">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 border border-stone-800/80 text-[11px] text-stone-400 backdrop-blur-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          <span>Hover to inspect · Click to read on table · Drag to rotate shelf</span>
+        </div>
+        <div id="status-filter-badge" class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-950/70 border border-amber-800/60 text-[10px] text-amber-300 font-mono-code">
+          <span>Filtering active</span>
+        </div>
+      </div>
+
+      <!-- Shelf Counter & Shortcuts Pill -->
+      <div class="absolute top-3 right-4 z-20 hidden sm:flex items-center gap-2">
+        <div class="px-2.5 py-1 rounded-lg bg-black/60 border border-stone-800/80 text-[11px] text-stone-400 backdrop-blur-sm font-mono-code">
+          <span id="active-book-count">8</span> books on shelf
+        </div>
+      </div>
+
+      <!-- THREE.JS CANVAS CONTAINER -->
+      <div id="canvas-container" class="w-full flex-grow cursor-grab active:cursor-grabbing">
+        <canvas id="three-canvas" class="w-full h-full block"></canvas>
+      </div>
+
+      <!-- READING DESK COMPANION CARD (Shows when book is on the table) -->
+      <div id="reading-card-container" class="hidden absolute bottom-4 sm:bottom-8 right-4 sm:right-10 z-30 max-w-lg w-[calc(100%-2rem)] sm:w-[460px] transition-all duration-300 transform translate-y-4 opacity-0 pointer-events-auto">
+        <div class="wood-card rounded-2xl p-5 sm:p-6 shadow-2xl shadow-black/90 border border-amber-700/30 backdrop-blur-md relative overflow-hidden">
+          
+          <!-- Top Accent Light Bar -->
+          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-amber-300 to-amber-700"></div>
+
+          <!-- Header with Issue and Close -->
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+              <span id="card-issue-badge" class="px-2 py-0.5 rounded text-[11px] font-mono-code font-bold uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-800/60">
+                ISSUE #01
+              </span>
+              <span class="text-[11px] uppercase tracking-wider text-stone-400 font-mono-code">INTERESTING READS</span>
+            </div>
+            <button 
+              id="card-shelve-btn" 
+              class="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-stone-800/80 hover:bg-stone-700 text-stone-300 hover:text-white border border-stone-700/60 transition-colors"
+              title="Shelve it (or press Escape)"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+              </svg>
+              <span>Shelve It [Esc]</span>
+            </button>
+          </div>
+
+          <!-- Title -->
+          <h2 id="card-title" class="text-xl sm:text-2xl font-bold text-white font-serif-title leading-snug mb-1">
+            Lenin on India
+          </h2>
+          <p id="card-bengali-title" class="text-sm text-amber-200/80 mb-2 font-serif-title italic">
+            ভারত প্রসঙ্গে লেনিন
+          </p>
+
+          <!-- Author & Source -->
+          <div class="flex items-center gap-2 text-xs text-stone-300 mb-3 pb-3 border-b border-stone-800/80">
+            <span class="text-stone-400">By</span>
+            <span id="card-author" class="font-semibold text-amber-100">Buddhadeb Bhattacharjee</span>
+            <span class="text-stone-600">·</span>
+            <span id="card-publication" class="text-stone-400 text-[11px] truncate">Marxbadi Path</span>
+          </div>
+
+          <!-- Topics Pills inside Card -->
+          <div id="card-topics" class="flex flex-wrap gap-1.5 mb-3">
+            <!-- Populated dynamically -->
+          </div>
+
+          <!-- Description -->
+          <p id="card-description" class="text-xs sm:text-sm text-stone-300 leading-relaxed mb-5 max-h-36 overflow-y-auto pr-1">
+            Historical survey of Lenin's writings on India and anti-colonialism.
+          </p>
+
+          <!-- Actions Footer -->
+          <div class="flex items-center justify-between gap-3 pt-3 border-t border-stone-800/80">
+            <!-- Navigation: Previous & Next -->
+            <div class="flex items-center gap-1">
+              <button 
+                id="card-prev-btn" 
+                class="p-2 rounded-lg bg-stone-800/90 hover:bg-stone-700 text-stone-200 hover:text-white border border-stone-700/80 transition-colors"
+                title="Previous book (Left arrow)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <button 
+                id="card-next-btn" 
+                class="p-2 rounded-lg bg-stone-800/90 hover:bg-stone-700 text-stone-200 hover:text-white border border-stone-700/80 transition-colors"
+                title="Next book (Right arrow)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+              <!-- Share Link Button -->
+              <button 
+                id="card-share-btn" 
+                class="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-stone-800/90 hover:bg-stone-700 text-stone-300 hover:text-white border border-stone-700/80 transition-colors ml-1"
+                title="Copy share link for this book"
+              >
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                </svg>
+                <span>Share</span>
+              </button>
+            </div>
+
+            <!-- Read Button (Opens article in new tab) -->
+            <a 
+              id="card-read-link" 
+              href="#" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-semibold text-xs sm:text-sm shadow-lg shadow-amber-900/40 transition-all hover:scale-105 active:scale-95"
+            >
+              <span>Read Essay</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 2D PLAIN LIST FALLBACK VIEW (Accessible / WebGL Fail / User Toggle) -->
+    <div id="view-2d-wrapper" class="hidden max-w-6xl mx-auto w-full px-4 py-8 flex-grow">
+      <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-4">
+        <div>
+          <h2 class="text-2xl font-bold font-serif-title text-white">Classic Paperback Catalogue</h2>
+          <p class="text-sm text-stone-400 mt-1">Complete collection of essays and editions in Arka's Library.</p>
+        </div>
+        <div class="text-xs text-stone-500 font-mono-code" id="catalogue-count">
+          Showing 8 items
+        </div>
+      </div>
+      <div id="catalogue-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ADD ESSAY / LINK MODAL -->
+  <div id="add-modal" class="fixed inset-0 z-50 glass-modal flex items-center justify-center p-4 hidden">
+    <div class="bg-[#12141a] border border-stone-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      
+      <!-- Close Button -->
+      <button 
+        id="close-add-modal-btn" 
+        class="absolute top-4 right-4 p-1.5 text-stone-400 hover:text-white rounded-lg hover:bg-stone-800 transition-colors"
+        title="Close modal"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs font-mono-code text-amber-500 uppercase tracking-wider font-semibold">Library Expansion</span>
+      </div>
+      <h3 class="text-xl font-bold text-white font-serif-title mb-4">Add an Essay to Arka's Library</h3>
+
+      <form id="add-essay-form" class="space-y-4">
+        <!-- Article URL -->
+        <div>
+          <label for="input-url" class="block text-xs font-medium text-stone-300 mb-1">Article / Essay URL *</label>
+          <input 
+            type="url" 
+            id="input-url" 
+            required 
+            placeholder="https://marxbadipath.org/article/..." 
+            class="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          >
+        </div>
+
+        <!-- Title -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="input-title" class="block text-xs font-medium text-stone-300 mb-1">Title *</label>
+            <input 
+              type="text" 
+              id="input-title" 
+              required 
+              placeholder="e.g. Imperialism & Resistance" 
+              class="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+          </div>
+          <div>
+            <label for="input-bengali-title" class="block text-xs font-medium text-stone-300 mb-1">Sub-title / Bengali (Optional)</label>
+            <input 
+              type="text" 
+              id="input-bengali-title" 
+              placeholder="বাংলা শিরোনাম" 
+              class="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+          </div>
+        </div>
+
+        <!-- Author & Issue -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="input-author" class="block text-xs font-medium text-stone-300 mb-1">Author *</label>
+            <input 
+              type="text" 
+              id="input-author" 
+              required 
+              placeholder="Author name" 
+              class="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+          </div>
+          <div>
+            <label for="input-issue" class="block text-xs font-medium text-stone-300 mb-1">Issue Number</label>
+            <input 
+              type="text" 
+              id="input-issue" 
+              placeholder="e.g. 09" 
+              class="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono-code"
+            >
+          </div>
+        </div>
+
+        <!-- Topics -->
+        <div>
+          <label for="input-topics" class="block text-xs font-medium text-stone-300 mb-1">Topics (comma-separated) *</label>
+          <input 
+            type="text" 
+            id="input-topics" 
+            required 
+            placeholder="Marxism, History, Philosophy" 
+            class="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          >
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label for="input-description" class="block text-xs font-medium text-stone-300 mb-1">Short Description / Excerpt *</label>
+          <textarea 
+            id="input-description" 
+            rows="3" 
+            required 
+            placeholder="A short overview of the essay..." 
+            class="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          ></textarea>
+        </div>
+
+        <!-- Cover Color Palette Selection -->
+        <div>
+          <label class="block text-xs font-medium text-stone-300 mb-1.5">Spine & Cover Palette</label>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" data-color="#991b1b" class="color-palette-btn w-7 h-7 rounded-full bg-red-800 ring-2 ring-white transition-all"></button>
+            <button type="button" data-color="#1e3a8a" class="color-palette-btn w-7 h-7 rounded-full bg-blue-900 ring-1 ring-transparent transition-all"></button>
+            <button type="button" data-color="#15803d" class="color-palette-btn w-7 h-7 rounded-full bg-green-800 ring-1 ring-transparent transition-all"></button>
+            <button type="button" data-color="#b45309" class="color-palette-btn w-7 h-7 rounded-full bg-amber-700 ring-1 ring-transparent transition-all"></button>
+            <button type="button" data-color="#6b21a8" class="color-palette-btn w-7 h-7 rounded-full bg-purple-800 ring-1 ring-transparent transition-all"></button>
+            <button type="button" data-color="#0f766e" class="color-palette-btn w-7 h-7 rounded-full bg-teal-800 ring-1 ring-transparent transition-all"></button>
+            <button type="button" data-color="#831843" class="color-palette-btn w-7 h-7 rounded-full bg-pink-900 ring-1 ring-transparent transition-all"></button>
+            <button type="button" data-color="#334155" class="color-palette-btn w-7 h-7 rounded-full bg-slate-700 ring-1 ring-transparent transition-all"></button>
+            <input type="color" id="input-custom-color" value="#991b1b" class="w-7 h-7 p-0 bg-transparent rounded border-0 cursor-pointer" title="Custom color">
+          </div>
+          <input type="hidden" id="selected-color" value="#991b1b">
+        </div>
+
+        <!-- Submit & Actions -->
+        <div class="flex items-center justify-between gap-3 pt-4 border-t border-stone-800">
+          <button 
+            type="button" 
+            id="export-json-btn" 
+            class="text-xs text-stone-400 hover:text-amber-300 underline font-mono-code"
+          >
+            Export essays.json
+          </button>
+          <div class="flex items-center gap-2">
+            <button 
+              type="button" 
+              id="cancel-add-btn" 
+              class="px-4 py-2 text-xs font-medium text-stone-400 hover:text-white rounded-lg hover:bg-stone-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              class="px-5 py-2 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 transition-all shadow-md shadow-amber-950/50"
+            >
+              Place on Shelf
+            </button>
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="w-full bg-[#050608] border-t border-stone-900 py-3 px-4 sm:px-6 text-xs text-stone-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="font-serif-title text-stone-400">Arka's Library</span>
+        <span>·</span>
+        <span>Curated collection from <a href="https://marxbadipath.org" target="_blank" rel="noopener noreferrer" class="text-amber-500/80 hover:underline">Marxbadi Path</a></span>
+      </div>
+      <div class="flex items-center gap-3 text-[11px] font-mono-code">
+        <span>Three.js WebGL</span>
+        <span>·</span>
+        <button id="footer-export-btn" class="hover:text-amber-400 underline">Export essays.json</button>
+        <span>·</span>
+        <span>Static Distribution</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- CORE JAVASCRIPT APPLICATION -->
+  <script>
+    // DEFAULT ESSAYS BACKBONE
+    const DEFAULT_ESSAYS = [
+  {
+    "id": "lenin-on-india",
+    "issue": "01",
+    "title": "Lenin on India",
+    "bengaliTitle": "ভারত প্রসঙ্গে লেনিন",
+    "author": "Buddhadeb Bhattacharjee",
+    "bengaliAuthor": "বুদ্ধদেব ভট্টাচার্য",
+    "url": "https://marxbadipath.org/article/lenin-on-india/951",
+    "publication": "Marxbadi Path (August 1983 / Oct 2026)",
+    "description": "An exhaustive historical survey of V.I. Lenin's writings, speeches, and internationalist perspectives on colonial India, the 1908 Bombay general strike, and the Indian national liberation movement.",
+    "topics": [
+      "Marxism",
+      "History",
+      "Freedom Struggle",
+      "Lenin"
+    ],
+    "color": "#991b1b",
+    "accentColor": "#fef08a",
+    "motif": "lenin-star",
+    "height": 2.25,
+    "thickness": 0.34,
+    "lean": -0.05
+  },
+  {
+    "id": "october-revolution-imprint-i",
+    "issue": "02",
+    "title": "October Revolution: Imprint on Freedom Struggles - I",
+    "bengaliTitle": "অক্টোবর বিপ্লব: ভারতের স্বাধীনতা সংগ্রামে তার অনপনেয় স্বাক্ষর ১",
+    "author": "Sitaram Yechury",
+    "bengaliAuthor": "সীতারাম ইয়েচুরি",
+    "url": "https://marxbadipath.org/article/october-revolution-imprint-on-freedom-struggles/952",
+    "publication": "Frontline / Marxbadi Path (Oct 2026)",
+    "description": "A profound exploration of how the 1917 Great October Socialist Revolution transformed global anti-colonial movements, inspiring the working class and peasant uprisings throughout the colonized world.",
+    "topics": [
+      "October Revolution",
+      "Anti-Imperialism",
+      "Freedom Struggle",
+      "History"
+    ],
+    "color": "#1e3a8a",
+    "accentColor": "#bfdbfe",
+    "motif": "aurora-ship",
+    "height": 2.35,
+    "thickness": 0.38,
+    "lean": 0.04
+  },
+  {
+    "id": "october-revolution-imprint-ii",
+    "issue": "03",
+    "title": "October Revolution: Imprint on Freedom Struggles - II",
+    "bengaliTitle": "অক্টোবর বিপ্লব: ভারতের স্বাধীনতা সংগ্রামে তার অনপনেয় স্বাক্ষর ২",
+    "author": "Sitaram Yechury",
+    "bengaliAuthor": "সীতারাম ইয়েচুরি",
+    "url": "https://marxbadipath.org/article/october-revolution-imprint-on-freedom-struggles-ii/954",
+    "publication": "Frontline / Marxbadi Path (Oct 2026)",
+    "description": "Analyzing the profound resonance of the Russian Revolution in the minds and writings of Rabindranath Tagore, Mahatma Gandhi, Bhagat Singh, and Jawaharlal Nehru.",
+    "topics": [
+      "October Revolution",
+      "Tagore",
+      "Bhagat Singh",
+      "History"
+    ],
+    "color": "#15803d",
+    "accentColor": "#bbf7d0",
+    "motif": "torch-pen",
+    "height": 2.18,
+    "thickness": 0.3,
+    "lean": -0.04
+  },
+  {
+    "id": "october-revolution-imprint-iii",
+    "issue": "04",
+    "title": "October Revolution: Imprint on Freedom Struggles - III",
+    "bengaliTitle": "অক্টোবর বিপ্লব: ভারতের স্বাধীনতা সংগ্রামে তার অনপনেয় স্বাক্ষর ৩",
+    "author": "Sitaram Yechury",
+    "bengaliAuthor": "সীতারাম ইয়েচুরি",
+    "url": "https://marxbadipath.org/article/october-revolution-imprint-on-freedom-struggles-iii/956",
+    "publication": "Frontline / Marxbadi Path (Oct 2026)",
+    "description": "The founding of the Communist Party of India in Tashkent, the radical evolution of the Ghadar movement, Bhagat Singh's Kirti journal, and the rise of organized trade union and peasant struggles.",
+    "topics": [
+      "October Revolution",
+      "Ghadar Movement",
+      "Kisan Sabha",
+      "Working Class"
+    ],
+    "color": "#b45309",
+    "accentColor": "#fed7aa",
+    "motif": "ghadar-flag",
+    "height": 2.3,
+    "thickness": 0.36,
+    "lean": 0.06
+  },
+  {
+    "id": "lenin-and-anti-colonial-struggle",
+    "issue": "05",
+    "title": "Lenin and Anti-Colonial Struggle",
+    "bengaliTitle": "লেনিন ও উপনিবেশবাদ বিরোধী সংগ্রাম",
+    "author": "Ratan Khasnabis",
+    "bengaliAuthor": "রতন খাসনবিশ",
+    "url": "https://marxbadipath.org/article/lenin-on-india/951",
+    "publication": "Marxbadi Path (Oct 2026)",
+    "description": "An incisive theoretical critique of Lenin's thesis on imperialism as the highest stage of capitalism and its enduring validity in contemporary global anti-colonial discourse.",
+    "topics": [
+      "Marxism",
+      "Lenin",
+      "Anti-Imperialism",
+      "Economics"
+    ],
+    "color": "#6b21a8",
+    "accentColor": "#f3e8ff",
+    "motif": "compass-globe",
+    "height": 2.22,
+    "thickness": 0.31,
+    "lean": -0.05
+  },
+  {
+    "id": "vidyasagars-dialectic",
+    "issue": "06",
+    "title": "Vidyasagar's Dialectic: Scripture vs History",
+    "bengaliTitle": "বিদ্যাসাগরের তর্করীতি: শাস্ত্র বনাম ইতিহাস",
+    "author": "Ramkrishna Bhattacharya",
+    "bengaliAuthor": "রামকৃষ্ণ ভট্টাচার্য",
+    "url": "https://marxbadipath.org/article/lenin-on-india/951",
+    "publication": "Marxbadi Path (Sep 2026)",
+    "description": "A pioneering examination of Ishwar Chandra Vidyasagar's debate tactics—how humanistic and historical materialism operated beneath the tactical framework of traditional Sanskrit scriptures.",
+    "topics": [
+      "Philosophy",
+      "History",
+      "Dialectics"
+    ],
+    "color": "#0f766e",
+    "accentColor": "#ccfbf1",
+    "motif": "scales-quill",
+    "height": 2.28,
+    "thickness": 0.35,
+    "lean": 0.03
+  },
+  {
+    "id": "health-in-marxs-thought",
+    "issue": "07",
+    "title": "Health in Marx's Thought: Labor, Capital & Emancipation",
+    "bengaliTitle": "মার্কসের চিন্তায় স্বাস্থ্য: স্বাস্থ্য, শ্রম ও মানবমুক্তি",
+    "author": "Kumar Rana",
+    "bengaliAuthor": "কুমার রাণা",
+    "url": "https://marxbadipath.org/article/lenin-on-india/951",
+    "publication": "Marxbadi Path (Sep 2026)",
+    "description": "Interrogating the commodification of bodily well-being under capitalist accumulation and tracing Karl Marx's vital insights on occupational health, alienation, and human flourishing.",
+    "topics": [
+      "Marxism",
+      "Philosophy",
+      "Labor",
+      "Health"
+    ],
+    "color": "#831843",
+    "accentColor": "#fce7f3",
+    "motif": "caduceus-gear",
+    "height": 2.15,
+    "thickness": 0.29,
+    "lean": -0.03
+  },
+  {
+    "id": "reclaiming-smith-rereading-marx",
+    "issue": "08",
+    "title": "Reclaiming Smith, Rereading Marx",
+    "bengaliTitle": "স্মিথকে পুনরুদ্ধার, মার্কসকে পুনঃপাঠ",
+    "author": "Abhijit Ghosh",
+    "bengaliAuthor": "অভিজিৎ ঘোষ",
+    "url": "https://marxbadipath.org/article/lenin-on-india/951",
+    "publication": "Marxbadi Path (Sep 2026)",
+    "description": "Rescuing Adam Smith's moral philosophy and labor theory of value from neoliberal distortion, and engaging in a rigorous modern re-reading alongside Karl Marx's critique of political economy.",
+    "topics": [
+      "Economics",
+      "Philosophy",
+      "Marxism"
+    ],
+    "color": "#334155",
+    "accentColor": "#f1f5f9",
+    "motif": "book-weights",
+    "height": 2.32,
+    "thickness": 0.37,
+    "lean": 0.05
+  }
+];
+
+    // APPLICATION STATE
+    const AppState = {
+      essays: [],
+      activeTopic: 'All',
+      searchQuery: '',
+      selectedBookId: null,
+      is3DView: true,
+      reducedMotion: false,
+      audioMuted: false,
+      isHoveringShelf: false,
+      isDraggingShelf: false,
+      shelfRotation: 0,
+      shelfVelocity: 0,
+      lastPointerX: 0
+    };
+
+    // Load initial data from localStorage if available, otherwise DEFAULT_ESSAYS
+    function initData() {
+      try {
+        const stored = localStorage.getItem('arkas_library_essays');
+        if (stored) {
+          AppState.essays = JSON.parse(stored);
+        } else {
+          AppState.essays = JSON.parse(JSON.stringify(DEFAULT_ESSAYS));
+        }
+      } catch (e) {
+        AppState.essays = JSON.parse(JSON.stringify(DEFAULT_ESSAYS));
+      }
+
+      // Check reduced motion preference
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        AppState.reducedMotion = true;
+      }
+    }
+
+    function saveEssaysToStorage() {
+      try {
+        localStorage.setItem('arkas_library_essays', JSON.stringify(AppState.essays));
+      } catch (e) {
+        console.warn('Could not save to localStorage', e);
+      }
+    }
+
+    // TOAST NOTIFICATIONS
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'px-4 py-2.5 rounded-xl bg-stone-900/95 border border-amber-600/40 text-xs text-stone-100 shadow-xl shadow-black/80 flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto';
+      
+      const icon = type === 'success' 
+        ? '<span class="text-emerald-400 font-bold">✓</span>' 
+        : '<span class="text-amber-400 font-bold">★</span>';
+      
+      toast.innerHTML = `${icon} <span>${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 300);
+      }, 3200);
+    }
+
+    // SYNTHESIZED SOUND EFFECTS (Web Audio API)
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx && typeof (window.AudioContext || window.webkitAudioContext) !== 'undefined') {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContextClass();
+        }
+      },
+      playTypewriter() {
+        if (AppState.audioMuted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(800 + Math.random() * 400, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.015, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.04);
+        } catch(e) {}
+      },
+      playBookHover() {
+        if (AppState.audioMuted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(260, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(380, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.08);
+        } catch(e) {}
+      },
+      playBookSlide() {
+        if (AppState.audioMuted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.25);
+          gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.25);
+        } catch(e) {}
+      },
+      playTumble() {
+        if (AppState.audioMuted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(45, this.ctx.currentTime + 0.35);
+          gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.35);
+        } catch(e) {}
+      }
+    };
+
+    // TYPEWRITER EFFECT
+    function runTypewriter() {
+      const textElem = document.getElementById('typewriter-text');
+      const targetPhrase = "Welcome to Interesting Reads";
+      textElem.textContent = "";
+      let index = 0;
+
+      function typeNext() {
+        if (index < targetPhrase.length) {
+          textElem.textContent += targetPhrase.charAt(index);
+          AudioEngine.playTypewriter();
+          index++;
+          const delay = 45 + Math.random() * 55;
+          setTimeout(typeNext, delay);
+        }
+      }
+      setTimeout(typeNext, 400);
+    }
+
+    // PROCEDURAL TEXTURE GENERATION FOR CLASSIC PAPERBACK COVERS
+    function createCoverTexture(book) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 768;
+      const ctx = canvas.getContext('2d');
+
+      const bg = book.color || '#991b1b';
+      const accent = book.accentColor || '#fef08a';
+
+      // 1. Background Fill with subtle cloth grain
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 512, 768);
+
+      // Vignette / subtle shading
+      const grad = ctx.createRadialGradient(256, 384, 100, 256, 384, 450);
+      grad.addColorStop(0, 'rgba(255,255,255,0.08)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.55)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 768);
+
+      // Left spine hinge shadow simulation
+      const hinge = ctx.createLinearGradient(0, 0, 35, 0);
+      hinge.addColorStop(0, 'rgba(0,0,0,0.6)');
+      hinge.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = hinge;
+      ctx.fillRect(0, 0, 35, 768);
+
+      // 2. Classic Paperback Top Band
+      const bandY = 48;
+      const bandHeight = 72;
+      ctx.fillStyle = '#fdfbf7';
+      ctx.fillRect(20, bandY, 472, bandHeight);
+
+      // Double borders for the band
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(22, bandY + 2, 468, bandHeight - 4);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(26, bandY + 6, 460, bandHeight - 12);
+
+      // Band Text: [INTERESTING READS] and Issue Number
+      ctx.fillStyle = '#111827';
+      ctx.font = 'bold 15px "Space Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('[INTERESTING READS]', 42, bandY + 42);
+
+      ctx.textAlign = 'right';
+      ctx.font = 'bold 16px "Space Mono", monospace';
+      ctx.fillText(`ISSUE #${book.issue || '01'}`, 470, bandY + 42);
+
+      // 3. Title in Serif
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 2;
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 32px "Playfair Display", Georgia, serif';
+
+      // Multi-line word wrap for title
+      const titleWords = (book.title || 'Untitled Essay').split(' ');
+      let currentLine = '';
+      const lines = [];
+      for (let word of titleWords) {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        if (ctx.measureText(testLine).width > 420) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+
+      const titleStartY = 165;
+      lines.forEach((line, i) => {
+        ctx.fillText(line, 256, titleStartY + (i * 38));
+      });
+
+      // Bengali Subtitle if available
+      ctx.shadowBlur = 0;
+      if (book.bengaliTitle) {
+        ctx.fillStyle = accent;
+        ctx.font = 'italic 18px "Playfair Display", Georgia, serif';
+        ctx.fillText(book.bengaliTitle, 256, titleStartY + (lines.length * 38) + 12);
+      }
+
+      // 4. Middle Image Illustration Box
+      const boxY = 285;
+      const boxWidth = 360;
+      const boxHeight = 270;
+      const boxX = (512 - boxWidth) / 2;
+
+      // Frame
+      ctx.fillStyle = '#0d1117';
+      ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+      // Draw Thematic Procedural Motif
+      drawMotif(ctx, book.motif || 'lenin-star', boxX, boxY, boxWidth, boxHeight, accent);
+
+      // 5. Author at the foot
+      const footY = 660;
+      // Decorative filigree rule
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(80, footY - 24);
+      ctx.lineTo(432, footY - 24);
+      ctx.stroke();
+
+      ctx.fillStyle = '#f3f4f6';
+      ctx.font = '600 22px "Playfair Display", Georgia, serif';
+      ctx.fillText(book.author || 'Anonymous', 256, footY + 10);
+
+      // Colophon mark
+      ctx.fillStyle = accent;
+      ctx.font = '11px "Space Mono", monospace';
+      ctx.fillText("ARKA LIBRARY · CLASSIC SERIES", 256, footY + 44);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = true;
+      return texture;
+    }
+
+    // Draw unique thematic canvas illustrations for covers
+    function drawMotif(ctx, motif, x, y, w, h, accent) {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+
+      if (motif === 'lenin-star') {
+        // Radiant rays
+        ctx.strokeStyle = 'rgba(254, 240, 138, 0.2)';
+        ctx.lineWidth = 1.5;
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(a) * 160, cy + Math.sin(a) * 160);
+          ctx.stroke();
+        }
+        // Red / Gold Star
+        drawStar(ctx, cx, cy - 10, 5, 55, 24, accent, '#b91c1c');
+        // Laurel / Wheat leaves at base
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 50, 45, Math.PI * 0.8, Math.PI * 2.2);
+        ctx.stroke();
+      } else if (motif === 'aurora-ship') {
+        // Sea waves
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(x, cy + 40, w, h - (cy + 40 - y));
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < w; i += 20) {
+          ctx.arc(x + i + 10, cy + 40, 10, 0, Math.PI);
+        }
+        ctx.stroke();
+        // Cruiser Aurora silhouette
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.moveTo(cx - 100, cy + 30);
+        ctx.lineTo(cx + 100, cy + 30);
+        ctx.lineTo(cx + 70, cy + 45);
+        ctx.lineTo(cx - 90, cy + 45);
+        ctx.closePath();
+        ctx.fill();
+        // Chimneys & Masts
+        ctx.fillRect(cx - 40, cy - 15, 12, 45);
+        ctx.fillRect(cx - 10, cy - 15, 12, 45);
+        ctx.fillRect(cx + 20, cy - 15, 12, 45);
+        // Beacon spotlight beam
+        const beam = ctx.createLinearGradient(cx + 60, cy + 10, cx + 180, cy - 80);
+        beam.addColorStop(0, 'rgba(254,240,138,0.7)');
+        beam.addColorStop(1, 'rgba(254,240,138,0)');
+        ctx.fillStyle = beam;
+        ctx.beginPath();
+        ctx.moveTo(cx + 60, cy + 10);
+        ctx.lineTo(cx + 180, cy - 80);
+        ctx.lineTo(cx + 140, cy - 110);
+        ctx.closePath();
+        ctx.fill();
+      } else if (motif === 'torch-pen') {
+        // Glowing Torch with Flame
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 25, 32, 0, Math.PI * 2);
+        ctx.fill();
+        // Torch handle
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(cx - 8, cy - 10, 16, 75);
+        // Feather quill diagonal
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx - 60, cy + 60);
+        ctx.quadraticCurveTo(cx - 20, cy - 20, cx + 55, cy - 65);
+        ctx.stroke();
+      } else if (motif === 'ghadar-flag') {
+        // Rising sun horizon
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 35, 60, Math.PI, 0);
+        ctx.fill();
+        // Broken Chain links
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(cx - 60, cy - 20, 35, 20);
+        ctx.strokeRect(cx - 15, cy - 35, 35, 20);
+        ctx.strokeRect(cx + 30, cy - 20, 35, 20);
+      } else if (motif === 'scales-quill') {
+        // Scales of justice
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 60);
+        ctx.lineTo(cx, cy + 65);
+        ctx.moveTo(cx - 70, cy - 30);
+        ctx.lineTo(cx + 70, cy - 30);
+        ctx.stroke();
+        // Left scale pan
+        ctx.beginPath();
+        ctx.arc(cx - 70, cy + 10, 28, 0, Math.PI);
+        ctx.stroke();
+        // Right scale pan
+        ctx.beginPath();
+        ctx.arc(cx + 70, cy + 10, 28, 0, Math.PI);
+        ctx.stroke();
+      } else {
+        // Default emblem
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 55, 0, Math.PI * 2);
+        ctx.stroke();
+        drawStar(ctx, cx, cy, 6, 40, 20, accent, 'transparent');
+      }
+
+      ctx.restore();
+    }
+
+    function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, strokeStyle, fillStyle) {
+      let rot = Math.PI / 2 * 3;
+      let x = cx;
+      let y = cy;
+      const step = Math.PI / spikes;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - outerRadius);
+      for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerRadius;
+        y = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+
+        x = cx + Math.cos(rot) * innerRadius;
+        y = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+      }
+      ctx.lineTo(cx, cy - outerRadius);
+      ctx.closePath();
+      if (fillStyle && fillStyle !== 'transparent') {
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+      }
+      if (strokeStyle) {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+    }
+
+    // SPINE TEXTURE GENERATION
+    function createSpineTexture(book) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 768;
+      const ctx = canvas.getContext('2d');
+
+      const bg = book.color || '#991b1b';
+      const accent = book.accentColor || '#fef08a';
+
+      // Spine Background
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 128, 768);
+
+      // Spine 3D curved cylinder shading (shadows on edges, highlight along spine center)
+      const grad = ctx.createLinearGradient(0, 0, 128, 0);
+      grad.addColorStop(0, 'rgba(0,0,0,0.5)');
+      grad.addColorStop(0.35, 'rgba(255,255,255,0.18)');
+      grad.addColorStop(0.65, 'rgba(255,255,255,0.18)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 128, 768);
+
+      // Top & Bottom Headband & Footband (Cloth pattern)
+      ctx.fillStyle = '#fdf6e2';
+      ctx.fillRect(0, 0, 128, 20);
+      ctx.fillRect(0, 748, 128, 20);
+      ctx.fillStyle = '#b45309';
+      for (let x = 0; x < 128; x += 8) {
+        ctx.fillRect(x, 0, 4, 20);
+        ctx.fillRect(x, 748, 4, 20);
+      }
+
+      // Top Band: Issue number
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(16, 45, 96, 45);
+      ctx.fillStyle = '#111827';
+      ctx.font = 'bold 18px "Space Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`#${book.issue || '01'}`, 64, 74);
+
+      // Vertical Title
+      ctx.save();
+      ctx.translate(64, 420);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px "Playfair Display", Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 4;
+      
+      let spineTitle = book.title || 'Untitled';
+      if (spineTitle.length > 28) {
+        spineTitle = spineTitle.substring(0, 26) + '...';
+      }
+      ctx.fillText(spineTitle, 0, 8);
+      ctx.restore();
+
+      // Author at foot of spine
+      ctx.fillStyle = accent;
+      ctx.font = '13px "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      const shortAuthor = (book.author || 'Author').split(' ').pop();
+      ctx.fillText(shortAuthor, 64, 720);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = true;
+      return texture;
+    }
+
+    // CREAM PAGES TEXTURE
+    function createPagesTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      // Cream background
+      ctx.fillStyle = '#f7f1e1';
+      ctx.fillRect(0, 0, 256, 512);
+
+      // Fine horizontal striations representing layered pages
+      ctx.lineWidth = 1;
+      for (let y = 0; y < 512; y += 3) {
+        const tone = 220 + Math.floor(Math.random() * 25);
+        ctx.strokeStyle = `rgb(${tone}, ${tone - 12}, ${tone - 28})`;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(256, y);
+        ctx.stroke();
+      }
+
+      // Slight corner aging
+      const edge = ctx.createLinearGradient(0, 0, 20, 0);
+      edge.addColorStop(0, 'rgba(120, 80, 40, 0.25)');
+      edge.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = edge;
+      ctx.fillRect(0, 0, 20, 512);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = true;
+      return texture;
+    }
+
+    // BACK COVER TEXTURE
+    function createBackTexture(book) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 768;
+      const ctx = canvas.getContext('2d');
+
+      const bg = book.color || '#991b1b';
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 512, 768);
+
+      // Darkening vignette
+      const grad = ctx.createRadialGradient(256, 384, 100, 256, 384, 450);
+      grad.addColorStop(0, 'rgba(0,0,0,0.15)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 768);
+
+      // Excerpt / Quote box
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(40, 80, 432, 400);
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.strokeRect(40, 80, 432, 400);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'italic 18px "Playfair Display", Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('“A Curated Essay in Progressive Thought”', 256, 140);
+
+      ctx.font = '14px "Inter", sans-serif';
+      ctx.fillStyle = '#d1d5db';
+      ctx.textAlign = 'left';
+      
+      // Wrap description snippet
+      const desc = book.description || 'An indispensable contribution to history and radical philosophy.';
+      const words = desc.split(' ');
+      let line = '';
+      let dy = 190;
+      for (let w of words) {
+        if (ctx.measureText(line + w).width > 380) {
+          ctx.fillText(line, 60, dy);
+          line = w + ' ';
+          dy += 26;
+          if (dy > 420) break;
+        } else {
+          line += w + ' ';
+        }
+      }
+      if (line && dy <= 420) ctx.fillText(line, 60, dy);
+
+      // Barcode graphic at bottom
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(280, 620, 180, 90);
+      ctx.fillStyle = '#000000';
+      ctx.lineWidth = 2;
+      for (let bx = 295; bx < 445; bx += 5) {
+        if (Math.random() > 0.3) {
+          ctx.fillRect(bx, 630, (Math.random() > 0.5 ? 3 : 1), 60);
+        }
+      }
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`978-0-${book.issue || '01'}-ARKA`, 370, 702);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = true;
+      return texture;
+    }
+
+    // -------------------------------------------------------------
+    // THREE.JS 3D SCENE & ENGINE
+    // -------------------------------------------------------------
+    let scene, camera, renderer;
+    let shelfGroup, tableMesh;
+    let bookMeshes = [];
+    let raycaster, pointer;
+    let sharedPagesTexture = null;
+
+    // Physics Engine tracking structures
+    const PHYSICS = {
+      gravity: 18.0,
+      shelfRadius: 8.8,
+      shelfCenterZ: -3.8,
+      shelfY: -0.35,
+      books: [] // { mesh, book, state, origAngle, currentAngle, targetAngle, origLean, pos, vel, rot, angVel, onTable }
+    };
+
+    let hoveredIndex = -1;
+    let selectedIndex = -1;
+    let isAnimatingTransition = false;
+
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      const canvas = document.getElementById('three-canvas');
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // 1. Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x07080a); // Deep pitch black / no wall
+      scene.fog = new THREE.FogExp2(0x07080a, 0.035);
+
+      // 2. Camera
+      camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+      camera.position.set(0, 0.95, 11.2);
+      camera.lookAt(0, -0.15, 0);
+
+      // 3. Renderer with soft shadows
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: 'high-performance'
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // 4. Warm Lighting
+      // Top-Left Directional Warm Light (Key Light)
+      const keyLight = new THREE.DirectionalLight(0xffedd5, 1.45);
+      keyLight.position.set(-7.5, 9.5, 8.5);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.width = 2048;
+      keyLight.shadow.mapSize.height = 2048;
+      keyLight.shadow.camera.near = 1;
+      keyLight.shadow.camera.far = 25;
+      keyLight.shadow.camera.left = -9;
+      keyLight.shadow.camera.right = 9;
+      keyLight.shadow.camera.top = 9;
+      keyLight.shadow.camera.bottom = -9;
+      keyLight.shadow.bias = -0.0005;
+      scene.add(keyLight);
+
+      // Warm Ambient Light
+      const ambientLight = new THREE.AmbientLight(0xffecd2, 0.42);
+      scene.add(ambientLight);
+
+      // Table Reading Accent Spotlight
+      const deskSpot = new THREE.SpotLight(0xf59e0b, 0.85);
+      deskSpot.position.set(0, 4.2, 4.5);
+      deskSpot.target.position.set(0, -1.8, 3.8);
+      deskSpot.angle = Math.PI / 4;
+      deskSpot.penumbra = 0.6;
+      deskSpot.castShadow = true;
+      scene.add(deskSpot);
+      scene.add(deskSpot.target);
+
+      // Cool Rim Light from Back Right
+      const rimLight = new THREE.DirectionalLight(0x7dd3fc, 0.35);
+      rimLight.position.set(8, 3, -6);
+      scene.add(rimLight);
+
+      // 5. Build Curved Shelf & Reading Table
+      shelfGroup = new THREE.Group();
+      scene.add(shelfGroup);
+
+      buildCurvedShelf();
+      buildWoodenTable();
+
+      // 6. Raycaster
+      raycaster = new THREE.Raycaster();
+      pointer = new THREE.Vector2(-999, -999);
+
+      // 7. Populate Books
+      sharedPagesTexture = createPagesTexture();
+      rebuild3DBooks();
+
+      // 8. Event Listeners
+      setupInteractionEvents(container);
+
+      // 9. Resize Handling
+      window.addEventListener('resize', onWindowResize);
+
+      // 10. Start Animation Loop
+      animate(0);
+    }
+
+    // Construct the 3D Curved Wooden Shelf
+    function buildCurvedShelf() {
+      const radius = PHYSICS.shelfRadius;
+      const shelfY = PHYSICS.shelfY;
+      const arcSpan = Math.PI * 0.48; // span of curve
+      const segments = 48;
+      const depth = 1.8;
+      const thickness = 0.22;
+
+      // Create curved shape for extrusion or cylinder arc
+      const shelfGeom = new THREE.CylinderGeometry(
+        radius, 
+        radius + depth, 
+        thickness, 
+        segments, 
+        1, 
+        true, 
+        -arcSpan / 2 - Math.PI / 2, 
+        arcSpan
+      );
+
+      // Rich dark walnut / polished oak material
+      const woodMaterial = new THREE.MeshStandardMaterial({
+        color: 0x241710,
+        roughness: 0.55,
+        metalness: 0.12
+      });
+
+      const shelfMesh = new THREE.Mesh(shelfGeom, woodMaterial);
+      shelfMesh.position.set(0, shelfY - thickness / 2, PHYSICS.shelfCenterZ);
+      shelfMesh.receiveShadow = true;
+      shelfMesh.castShadow = true;
+      shelfGroup.add(shelfMesh);
+
+      // Lip / front bevel of shelf
+      const frontRailGeom = new THREE.TorusGeometry(radius, 0.05, 12, segments, arcSpan);
+      const railMat = new THREE.MeshStandardMaterial({ color: 0x452311, roughness: 0.4 });
+      const railMesh = new THREE.Mesh(frontRailGeom, railMat);
+      railMesh.rotation.x = Math.PI / 2;
+      railMesh.rotation.z = -arcSpan / 2;
+      railMesh.position.set(0, shelfY, PHYSICS.shelfCenterZ);
+      shelfGroup.add(railMesh);
+    }
+
+    // Construct the Wooden Table Under the Shelf
+    function buildWoodenTable() {
+      const tableGeom = new THREE.BoxGeometry(16, 0.35, 7.5);
+      const tableMat = new THREE.MeshStandardMaterial({
+        color: 0x1f140e,
+        roughness: 0.48,
+        metalness: 0.15
+      });
+      tableMesh = new THREE.Mesh(tableGeom, tableMat);
+      tableMesh.position.set(0, -2.4, 4.2);
+      tableMesh.receiveShadow = true;
+      tableMesh.castShadow = true;
+      scene.add(tableMesh);
+
+      // Subtle table brass edge inlay
+      const brassBevelGeom = new THREE.BoxGeometry(16.05, 0.06, 0.06);
+      const brassMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.3, metalness: 0.8 });
+      const brassBevel = new THREE.Mesh(brassBevelGeom, brassMat);
+      brassBevel.position.set(0, -2.21, 7.95);
+      scene.add(brassBevel);
+    }
+
+    // Rebuild all 3D Books onto the shelf from AppState.essays
+    function rebuild3DBooks() {
+      // Clean up previous meshes
+      PHYSICS.books.forEach(b => {
+        if (b.mesh && b.mesh.parent) {
+          b.mesh.parent.remove(b.mesh);
+        }
+      });
+      PHYSICS.books = [];
+      bookMeshes = [];
+
+      const count = AppState.essays.length;
+      if (count === 0) return;
+
+      const totalArc = Math.min(Math.PI * 0.42, 0.12 * count);
+      const stepArc = count > 1 ? totalArc / (count - 1) : 0;
+      const startArc = -totalArc / 2;
+
+      AppState.essays.forEach((essay, idx) => {
+        const width = 1.42;
+        const height = essay.height || (2.15 + (idx % 3) * 0.09);
+        const thickness = essay.thickness || (0.28 + (idx % 4) * 0.03);
+        const leanZ = essay.lean !== undefined ? essay.lean : (((idx % 2 === 0 ? 1 : -1) * 0.05) + (Math.random() * 0.02 - 0.01));
+
+        // Create Materials
+        const coverTex = createCoverTexture(essay);
+        const spineTex = createSpineTexture(essay);
+        const backTex = createBackTexture(essay);
+
+        const materials = [
+          new THREE.MeshStandardMaterial({ map: sharedPagesTexture, roughness: 0.85 }), // 0: Right (pages)
+          new THREE.MeshStandardMaterial({ map: spineTex, roughness: 0.65, metalness: 0.08 }), // 1: Left (spine)
+          new THREE.MeshStandardMaterial({ map: sharedPagesTexture, roughness: 0.85 }), // 2: Top (pages)
+          new THREE.MeshStandardMaterial({ map: sharedPagesTexture, roughness: 0.85 }), // 3: Bottom (pages)
+          new THREE.MeshStandardMaterial({ map: coverTex, roughness: 0.65, metalness: 0.05 }), // 4: Front (cover)
+          new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.75, metalness: 0.05 })  // 5: Back (back)
+        ];
+
+        const geom = new THREE.BoxGeometry(width, height, thickness);
+        const mesh = new THREE.Mesh(geom, materials);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData = { essayId: essay.id, index: idx };
+
+        // Calculate Position on Shelf Curve
+        const angle = startArc + idx * stepArc;
+        const R = PHYSICS.shelfRadius;
+        const x = R * Math.sin(angle);
+        const z = PHYSICS.shelfCenterZ + R * Math.cos(angle);
+        const y = PHYSICS.shelfY + height / 2;
+
+        mesh.position.set(x, y, z);
+
+        // Turn book slightly so front cover and spine are both attractively visible
+        mesh.rotation.y = -angle + 0.32;
+        mesh.rotation.z = leanZ;
+        mesh.rotation.x = 0;
+
+        shelfGroup.add(mesh);
+        bookMeshes.push(mesh);
+
+        PHYSICS.books.push({
+          mesh: mesh,
+          book: essay,
+          state: 'shelf', // 'shelf', 'tumbling', 'tumbled', 'rising', 'on_table'
+          origAngle: angle,
+          currentAngle: angle,
+          targetAngle: angle,
+          origLean: leanZ,
+          origHeight: height,
+          origY: y,
+          pos: new THREE.Vector3(x, y, z),
+          vel: new THREE.Vector3(),
+          rot: new THREE.Euler(-angle + 0.32, leanZ, 0),
+          angVel: new THREE.Vector3(),
+          hoverProgress: 0,
+          tableProgress: 0,
+          onTable: false
+        });
+      });
+
+      updateActiveCounter();
+    }
+
+    // TOPIC FILTER PHYSICS SIMULATION
+    function applyTopicFilter(topic) {
+      AppState.activeTopic = topic;
+      AudioEngine.playTumble();
+
+      // Filter state badge
+      const badge = document.getElementById('status-filter-badge');
+      if (topic !== 'All' || AppState.searchQuery) {
+        badge.classList.remove('hidden');
+        badge.textContent = topic !== 'All' ? `Topic: ${topic}` : `Search: "${AppState.searchQuery}"`;
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      // Deselect table book if it's being filtered out
+      if (selectedIndex !== -1) {
+        const selectedBookObj = PHYSICS.books[selectedIndex];
+        if (selectedBookObj && !matchesFilter(selectedBookObj.book)) {
+          shelveActiveBook();
+        }
+      }
+
+      // Match check
+      const matched = [];
+      const unmatched = [];
+
+      PHYSICS.books.forEach(b => {
+        if (matchesFilter(b.book)) {
+          matched.push(b);
+        } else {
+          unmatched.push(b);
+        }
+      });
+
+      // 1. Unmatched books tumble off the shelf with real physics
+      unmatched.forEach((b, i) => {
+        if (b.state !== 'tumbling' && b.state !== 'tumbled') {
+          b.state = 'tumbling';
+          // Real forward physics impulse
+          const forwardDir = new THREE.Vector3(
+            Math.sin(b.currentAngle), 
+            0, 
+            Math.cos(b.currentAngle)
+          ).normalize();
+
+          b.vel.set(
+            forwardDir.x * (1.6 + Math.random() * 0.8) + (Math.random() - 0.5) * 0.4,
+            0.8 + Math.random() * 0.6,
+            forwardDir.z * (1.6 + Math.random() * 0.8) + 0.8
+          );
+          // Angular torque (tips forward off the shelf)
+          b.angVel.set(
+            3.8 + Math.random() * 2.5,
+            (Math.random() - 0.5) * 3.0,
+            (Math.random() - 0.5) * 2.5
+          );
+        }
+      });
+
+      // 2. Matched books slide together to close up gaps along the shelf
+      const matchCount = matched.length;
+      if (matchCount > 0) {
+        const totalSpan = Math.min(Math.PI * 0.36, 0.11 * matchCount);
+        const step = matchCount > 1 ? totalSpan / (matchCount - 1) : 0;
+        const start = -totalSpan / 2;
+
+        matched.forEach((b, idx) => {
+          b.targetAngle = matchCount === 1 ? 0 : (start + idx * step);
+          if (b.state === 'tumbled' || b.state === 'tumbling') {
+            // Rising back into place!
+            b.state = 'rising';
+          }
+        });
+      }
+
+      // If switched back to 'All' or empty search: all books return
+      if (topic === 'All' && !AppState.searchQuery) {
+        PHYSICS.books.forEach(b => {
+          b.targetAngle = b.origAngle;
+          if (b.state === 'tumbled' || b.state === 'tumbling') {
+            b.state = 'rising';
+          }
+        });
+      }
+
+      updateActiveCounter();
+      render2DCatalogue();
+    }
+
+    function matchesFilter(book) {
+      // Topic match
+      let topicMatches = false;
+      if (AppState.activeTopic === 'All') {
+        topicMatches = true;
+      } else {
+        topicMatches = book.topics && book.topics.some(t => t.toLowerCase() === AppState.activeTopic.toLowerCase());
+      }
+
+      // Search match
+      let searchMatches = true;
+      if (AppState.searchQuery.trim()) {
+        const q = AppState.searchQuery.toLowerCase();
+        const inTitle = (book.title || '').toLowerCase().includes(q);
+        const inBengali = (book.bengaliTitle || '').toLowerCase().includes(q);
+        const inAuthor = (book.author || '').toLowerCase().includes(q);
+        const inDesc = (book.description || '').toLowerCase().includes(q);
+        const inTopics = book.topics && book.topics.some(t => t.toLowerCase().includes(q));
+        searchMatches = inTitle || inBengali || inAuthor || inDesc || inTopics;
+      }
+
+      return topicMatches && searchMatches;
+    }
+
+    function updateActiveCounter() {
+      const count = PHYSICS.books.filter(b => matchesFilter(b.book)).length;
+      document.getElementById('active-book-count').textContent = count;
+      document.getElementById('catalogue-count').textContent = `Showing ${count} of ${PHYSICS.books.length} items`;
+    }
+
+    // INTERACTION & ANIMATION LOOP
+    let lastTime = 0;
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      // 1. Shelf Idle Rotation
+      if (!AppState.reducedMotion && !AppState.isHoveringShelf && !AppState.isDraggingShelf && selectedIndex === -1) {
+        shelfGroup.rotation.y += 0.0022;
+      }
+
+      // Damping shelf dragging velocity
+      if (!AppState.isDraggingShelf && Math.abs(AppState.shelfVelocity) > 0.0001) {
+        shelfGroup.rotation.y += AppState.shelfVelocity;
+        AppState.shelfVelocity *= 0.92;
+      }
+
+      // 2. Physics & Book State Updates
+      const R = PHYSICS.shelfRadius;
+      const shelfY = PHYSICS.shelfY;
+
+      PHYSICS.books.forEach((b, idx) => {
+        if (b.state === 'on_table') {
+          // Animating onto / resting on wooden table
+          const targetPos = new THREE.Vector3(-1.35, -1.25, 4.4);
+          const targetRot = new THREE.Euler(-0.28, 0.22, 0);
+
+          b.mesh.position.lerp(targetPos, 0.12);
+          b.mesh.rotation.x += (targetRot.x - b.mesh.rotation.x) * 0.12;
+          b.mesh.rotation.y += (targetRot.y - b.mesh.rotation.y) * 0.12;
+          b.mesh.rotation.z += (targetRot.z - b.mesh.rotation.z) * 0.12;
+          return;
+        }
+
+        if (b.state === 'tumbling') {
+          // Real physics integration
+          b.vel.y -= PHYSICS.gravity * dt;
+          b.mesh.position.addScaledVector(b.vel, dt);
+
+          // Angular rotation
+          b.mesh.rotation.x += b.angVel.x * dt;
+          b.mesh.rotation.y += b.angVel.y * dt;
+          b.mesh.rotation.z += b.angVel.z * dt;
+
+          // Shelf surface collision constraint
+          // "Nothing passes through the shelf"
+          const curDist = Math.sqrt(b.mesh.position.x * b.mesh.position.x + Math.pow(b.mesh.position.z - PHYSICS.shelfCenterZ, 2));
+          if (curDist < R + 1.2 && curDist > R - 1.2 && b.mesh.position.z < PHYSICS.shelfCenterZ + R) {
+            if (b.mesh.position.y < shelfY + b.origHeight / 2) {
+              b.mesh.position.y = shelfY + b.origHeight / 2;
+              b.vel.y = Math.abs(b.vel.y) * 0.25; // slight bounce
+              b.vel.x *= 0.8;
+            }
+          }
+
+          // Once deep below the stage, stop simulating
+          if (b.mesh.position.y < -12) {
+            b.state = 'tumbled';
+          }
+          return;
+        }
+
+        if (b.state === 'tumbled') {
+          // Hidden below stage
+          b.mesh.position.set(0, -20, 0);
+          return;
+        }
+
+        if (b.state === 'rising') {
+          // Magical levitation back onto the curved shelf
+          const targetX = R * Math.sin(b.targetAngle);
+          const targetZ = PHYSICS.shelfCenterZ + R * Math.cos(b.targetAngle);
+          const targetY = b.origY;
+          const targetRot = new THREE.Euler(0, -b.targetAngle + 0.32, b.origLean);
+
+          b.mesh.position.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.1);
+          b.mesh.rotation.x += (targetRot.x - b.mesh.rotation.x) * 0.1;
+          b.mesh.rotation.y += (targetRot.y - b.mesh.rotation.y) * 0.1;
+          b.mesh.rotation.z += (targetRot.z - b.mesh.rotation.z) * 0.1;
+
+          if (b.mesh.position.distanceTo(new THREE.Vector3(targetX, targetY, targetZ)) < 0.05) {
+            b.state = 'shelf';
+            b.currentAngle = b.targetAngle;
+          }
+          return;
+        }
+
+        if (b.state === 'shelf') {
+          // Smooth sliding along shelf curve if closing up gaps
+          b.currentAngle += (b.targetAngle - b.currentAngle) * 0.08;
+
+          const baseX = R * Math.sin(b.currentAngle);
+          const baseZ = PHYSICS.shelfCenterZ + R * Math.cos(b.currentAngle);
+          const baseY = b.origY;
+
+          // HOVER EFFECT:
+          // "Hover: the book lifts and slides forward, then goes back. Only one moves at a time."
+          const isHovered = (idx === hoveredIndex && selectedIndex === -1);
+          const targetHover = isHovered ? 1.0 : 0.0;
+          b.hoverProgress += (targetHover - b.hoverProgress) * 0.15;
+
+          // Normal vector facing out from curve
+          const normX = Math.sin(b.currentAngle);
+          const normZ = Math.cos(b.currentAngle);
+
+          // Lift (+0.35 Y) and slide forward (+0.55 out)
+          const posX = baseX + normX * (b.hoverProgress * 0.55);
+          const posZ = baseZ + normZ * (b.hoverProgress * 0.55);
+          const posY = baseY + b.hoverProgress * 0.35;
+
+          b.mesh.position.set(posX, posY, posZ);
+
+          // Orientation: slight straighten on hover
+          const baseRotY = -b.currentAngle + 0.32;
+          const baseRotZ = b.origLean * (1.0 - b.hoverProgress * 0.6);
+
+          b.mesh.rotation.set(0, baseRotY, baseRotZ);
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    // INTERACTION EVENT HANDLERS
+    function setupInteractionEvents(container) {
+      let isPointerDown = false;
+      let startX = 0;
+      let startY = 0;
+      let hasDragged = false;
+
+      // Pointer Move for Hover & Raycasting
+      container.addEventListener('pointermove', (e) => {
+        const rect = container.getBoundingClientRect();
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        if (isPointerDown) {
+          const deltaX = e.clientX - AppState.lastPointerX;
+          if (Math.abs(deltaX) > 2) hasDragged = true;
+          AppState.shelfVelocity = deltaX * 0.003;
+          shelfGroup.rotation.y += AppState.shelfVelocity;
+          AppState.lastPointerX = e.clientX;
+          return;
+        }
+
+        // Raycasting for single-book hover
+        if (selectedIndex === -1) {
+          raycaster.setFromCamera(pointer, camera);
+          const intersects = raycaster.intersectObjects(bookMeshes);
+
+          if (intersects.length > 0) {
+            const hitMesh = intersects[0].object;
+            const hitIndex = hitMesh.userData.index;
+
+            // Only hover books currently on shelf
+            if (PHYSICS.books[hitIndex] && PHYSICS.books[hitIndex].state === 'shelf') {
+              if (hoveredIndex !== hitIndex) {
+                hoveredIndex = hitIndex;
+                AudioEngine.playBookHover();
+                container.style.cursor = 'pointer';
+              }
+              return;
+            }
+          }
+        }
+
+        if (hoveredIndex !== -1) {
+          hoveredIndex = -1;
+          container.style.cursor = 'grab';
+        }
+      });
+
+      // Pointer Enter & Leave for Shelf Auto-Rotate Pause
+      container.addEventListener('pointerenter', () => {
+        AppState.isHoveringShelf = true;
+        AudioEngine.init();
+      });
+
+      container.addEventListener('pointerleave', () => {
+        AppState.isHoveringShelf = false;
+        hoveredIndex = -1;
+        isPointerDown = false;
+        AppState.isDraggingShelf = false;
+        container.style.cursor = 'grab';
+      });
+
+      // Pointer Down (Drag Start / Click Start)
+      container.addEventListener('pointerdown', (e) => {
+        AudioEngine.init();
+        isPointerDown = true;
+        AppState.isDraggingShelf = true;
+        hasDragged = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        AppState.lastPointerX = e.clientX;
+        AppState.shelfVelocity = 0;
+        container.style.cursor = 'grabbing';
+      });
+
+      // Pointer Up (Click Detection)
+      window.addEventListener('pointerup', (e) => {
+        if (!isPointerDown) return;
+        isPointerDown = false;
+        AppState.isDraggingShelf = false;
+        container.style.cursor = 'grab';
+
+        // If dragged significantly, don't trigger book click
+        if (hasDragged) return;
+
+        // Check if a book was clicked
+        const rect = container.getBoundingClientRect();
+        if (
+          e.clientX >= rect.left && 
+          e.clientX <= rect.right && 
+          e.clientY >= rect.top && 
+          e.clientY <= rect.bottom
+        ) {
+          raycaster.setFromCamera(pointer, camera);
+          const intersects = raycaster.intersectObjects(bookMeshes);
+
+          if (intersects.length > 0) {
+            const clickedMesh = intersects[0].object;
+            const clickedIndex = clickedMesh.userData.index;
+            selectBook(clickedIndex);
+          }
+        }
+      });
+
+      // Touch handlers: Swipe sideways to move shelf, swipe up to scroll page
+      container.addEventListener('touchstart', (e) => {
+        AudioEngine.init();
+        if (e.touches.length === 1) {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          AppState.lastPointerX = startX;
+          AppState.isDraggingShelf = true;
+        }
+      }, { passive: true });
+
+      container.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1 && AppState.isDraggingShelf) {
+          const currentX = e.touches[0].clientX;
+          const currentY = e.touches[0].clientY;
+          const deltaX = currentX - startX;
+          const deltaY = currentY - startY;
+
+          // If horizontal swipe is dominant: rotate shelf!
+          // If vertical swipe is dominant: allow natural page scroll!
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 6) {
+            const stepX = currentX - AppState.lastPointerX;
+            AppState.shelfVelocity = stepX * 0.0035;
+            shelfGroup.rotation.y += AppState.shelfVelocity;
+            AppState.lastPointerX = currentX;
+          }
+        }
+      }, { passive: true });
+
+      container.addEventListener('touchend', () => {
+        AppState.isDraggingShelf = false;
+      }, { passive: true });
+    }
+
+    // SELECT & DISPLAY BOOK ON READING TABLE
+    function selectBook(index) {
+      if (index < 0 || index >= PHYSICS.books.length) return;
+      const targetObj = PHYSICS.books[index];
+      if (!targetObj || (targetObj.state !== 'shelf' && targetObj.state !== 'on_table')) return;
+
+      AudioEngine.playBookSlide();
+
+      // If another book was on the table, shelve it first
+      if (selectedIndex !== -1 && selectedIndex !== index) {
+        const prev = PHYSICS.books[selectedIndex];
+        if (prev) {
+          prev.state = 'rising'; // smoothly moves back to shelf
+        }
+      }
+
+      selectedIndex = index;
+      targetObj.state = 'on_table';
+
+      // Update deep link hash
+      try {
+        window.location.hash = `book-${targetObj.book.id}`;
+      } catch (e) {}
+
+      // Populate Reading Card
+      populateReadingCard(targetObj.book);
+      showReadingCard();
+    }
+
+    // SHELVE ACTIVE BOOK (PUTS IT BACK ON SHELF)
+    function shelveActiveBook() {
+      if (selectedIndex === -1) return;
+      AudioEngine.playBookSlide();
+
+      const activeObj = PHYSICS.books[selectedIndex];
+      if (activeObj) {
+        activeObj.state = 'rising'; // smoothly slides back to its original slot and lean
+      }
+
+      selectedIndex = -1;
+      hideReadingCard();
+
+      // Clean hash
+      try {
+        history.replaceState(null, null, ' ');
+      } catch (e) {}
+    }
+
+    // POPULATE READING CARD DATA
+    function populateReadingCard(book) {
+      document.getElementById('card-issue-badge').textContent = `ISSUE #${book.issue || '01'}`;
+      document.getElementById('card-title').textContent = book.title || 'Untitled';
+      
+      const bengaliElem = document.getElementById('card-bengali-title');
+      if (book.bengaliTitle) {
+        bengaliElem.textContent = book.bengaliTitle;
+        bengaliElem.classList.remove('hidden');
+      } else {
+        bengaliElem.classList.add('hidden');
+      }
+
+      document.getElementById('card-author').textContent = book.author || 'Anonymous';
+      document.getElementById('card-publication').textContent = book.publication || 'Marxbadi Path Archive';
+      document.getElementById('card-description').textContent = book.description || 'No description provided.';
+      
+      const readLink = document.getElementById('card-read-link');
+      readLink.href = book.url || '#';
+
+      // Topics Pills
+      const topicsContainer = document.getElementById('card-topics');
+      topicsContainer.innerHTML = '';
+      if (book.topics && Array.isArray(book.topics)) {
+        book.topics.forEach(t => {
+          const pill = document.createElement('button');
+          pill.type = 'button';
+          pill.className = 'px-2 py-0.5 rounded text-[10px] font-mono-code bg-stone-800 hover:bg-amber-900/60 text-stone-300 hover:text-amber-200 border border-stone-700/60 transition-colors';
+          pill.textContent = `#${t}`;
+          pill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            applyTopicFilter(t);
+            renderTopicButtons();
+          });
+          topicsContainer.appendChild(pill);
+        });
+      }
+    }
+
+    function showReadingCard() {
+      const card = document.getElementById('reading-card-container');
+      card.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        card.classList.remove('translate-y-4', 'opacity-0');
+      });
+    }
+
+    function hideReadingCard() {
+      const card = document.getElementById('reading-card-container');
+      card.classList.add('translate-y-4', 'opacity-0');
+      setTimeout(() => {
+        if (selectedIndex === -1) card.classList.add('hidden');
+      }, 300);
+    }
+
+    // CYCLE PREVIOUS & NEXT BOOKS
+    function navigateBook(direction) {
+      if (PHYSICS.books.length === 0) return;
+      const filtered = PHYSICS.books
+        .map((b, idx) => ({ b, idx }))
+        .filter(item => matchesFilter(item.b.book));
+
+      if (filtered.length === 0) return;
+
+      const currentFilteredPos = filtered.findIndex(item => item.idx === selectedIndex);
+      let nextFilteredPos = 0;
+
+      if (currentFilteredPos !== -1) {
+        nextFilteredPos = (currentFilteredPos + direction + filtered.length) % filtered.length;
+      }
+      selectBook(filtered[nextFilteredPos].idx);
+    }
+
+    // WINDOW RESIZE
+    function onWindowResize() {
+      const container = document.getElementById('canvas-container');
+      if (!container || !renderer || !camera) return;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    // -------------------------------------------------------------
+    // TOPIC BUTTONS BAR
+    // -------------------------------------------------------------
+    function renderTopicButtons() {
+      const container = document.getElementById('topics-container');
+      container.innerHTML = '';
+
+      // Collect unique topics
+      const topicSet = new Set(['All']);
+      AppState.essays.forEach(e => {
+        if (e.topics && Array.isArray(e.topics)) {
+          e.topics.forEach(t => topicSet.add(t));
+        }
+      });
+
+      Array.from(topicSet).forEach(topic => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `btn-topic px-3 py-1 rounded-lg text-xs font-medium font-mono-code transition-all ${
+          AppState.activeTopic === topic
+            ? 'bg-amber-600 text-stone-950 font-bold shadow-md shadow-amber-950/60 ring-1 ring-amber-400'
+            : 'bg-stone-900/90 text-stone-300 hover:bg-stone-800 hover:text-white border border-stone-800'
+        }`;
+        btn.textContent = topic;
+        btn.addEventListener('click', () => {
+          AudioEngine.init();
+          applyTopicFilter(topic);
+          renderTopicButtons();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 2D PLAIN CATALOGUE VIEW
+    // -------------------------------------------------------------
+    function render2DCatalogue() {
+      const grid = document.getElementById('catalogue-grid');
+      grid.innerHTML = '';
+
+      const visible = AppState.essays.filter(e => matchesFilter(e));
+      if (visible.length === 0) {
+        grid.innerHTML = '<div class="col-span-full py-12 text-center text-stone-500 font-mono-code text-sm">No essays match your filter criteria.</div>';
+        return;
+      }
+
+      visible.forEach(essay => {
+        const card = document.createElement('div');
+        card.className = 'wood-card rounded-2xl p-5 border border-stone-800/80 hover:border-amber-600/40 transition-all flex flex-col justify-between shadow-lg';
+        
+        const topicsHtml = (essay.topics || [])
+          .map(t => `<span class="px-2 py-0.5 rounded text-[10px] font-mono-code bg-stone-800/80 text-stone-300">#${t}</span>`)
+          .join(' ');
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono-code font-bold uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-800/60">
+                ISSUE #${essay.issue || '01'}
+              </span>
+              <span class="text-[10px] uppercase font-mono-code text-stone-500">INTERESTING READS</span>
+            </div>
+            <h3 class="text-lg font-bold text-white font-serif-title mb-1">${essay.title}</h3>
+            ${essay.bengaliTitle ? `<p class="text-xs text-amber-300/80 font-serif-title italic mb-2">${essay.bengaliTitle}</p>` : ''}
+            <p class="text-xs text-stone-400 mb-3">By <span class="text-stone-200 font-semibold">${essay.author}</span> · ${essay.publication || 'Marxbadi Path'}</p>
+            <div class="flex flex-wrap gap-1 mb-3">${topicsHtml}</div>
+            <p class="text-xs text-stone-300 leading-relaxed line-clamp-3 mb-4">${essay.description}</p>
+          </div>
+          <div class="flex items-center justify-between gap-2 pt-3 border-t border-stone-800">
+            <button class="share-2d-btn text-xs text-stone-400 hover:text-amber-300 flex items-center gap-1 font-mono-code" data-id="${essay.id}">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+              Share
+            </button>
+            <a href="${essay.url}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold text-xs transition-colors flex items-center gap-1.5">
+              <span>Read Essay</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        `;
+
+        card.querySelector('.share-2d-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          copyShareLink(essay.id);
+        });
+
+        grid.appendChild(card);
+      });
+    }
+
+    // SHARE LINK HELPER
+    function copyShareLink(essayId) {
+      const url = new URL(window.location.href);
+      url.hash = `book-${essayId}`;
+      const str = url.toString();
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(str).then(() => {
+          showToast('Share link copied to clipboard!', 'success');
+        }).catch(() => {
+          fallbackCopyText(str);
+        });
+      } else {
+        fallbackCopyText(str);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Share link copied to clipboard!', 'success');
+      } catch (err) {
+        showToast('Could not copy link', 'info');
+      }
+      document.body.removeChild(ta);
+    }
+
+    // -------------------------------------------------------------
+    // EXPORT ESSAYS.JSON HELPER
+    // -------------------------------------------------------------
+    function exportEssaysJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(AppState.essays, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "essays.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Exported essays.json successfully!', 'success');
+    }
+
+    // -------------------------------------------------------------
+    // INITIALIZATION & UI LISTENERS
+    // -------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      initData();
+      runTypewriter();
+      renderTopicButtons();
+      render2DCatalogue();
+
+      // Initialize 3D Engine with safe WebGL check
+      let webglSupported = false;
+      try {
+        const testCanvas = document.createElement('canvas');
+        webglSupported = !!(window.WebGLRenderingContext && (testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl')));
+      } catch (e) {
+        webglSupported = false;
+      }
+
+      if (webglSupported) {
+        initThree();
+      } else {
+        // Fallback gracefully to 2D view
+        console.warn('WebGL not supported, activating plain catalogue fallback');
+        toggleViewMode(false);
+      }
+
+      // Check deep link hash
+      if (window.location.hash) {
+        const match = window.location.hash.match(/book-(.+)/);
+        if (match && match[1]) {
+          const bookId = match[1];
+          const foundIdx = PHYSICS.books.findIndex(b => b.book.id === bookId);
+          if (foundIdx !== -1) {
+            setTimeout(() => selectBook(foundIdx), 500);
+          }
+        }
+      }
+
+      // Setup Search Input
+      const searchInput = document.getElementById('search-input');
+      const searchClear = document.getElementById('search-clear-btn');
+
+      searchInput.addEventListener('input', (e) => {
+        AppState.searchQuery = e.target.value;
+        if (AppState.searchQuery) {
+          searchClear.classList.remove('hidden');
+        } else {
+          searchClear.classList.add('hidden');
+        }
+        applyTopicFilter(AppState.activeTopic);
+      });
+
+      searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        AppState.searchQuery = '';
+        searchClear.classList.add('hidden');
+        applyTopicFilter(AppState.activeTopic);
+      });
+
+      // Card Action Buttons
+      document.getElementById('card-shelve-btn').addEventListener('click', shelveActiveBook);
+      document.getElementById('card-prev-btn').addEventListener('click', () => navigateBook(-1));
+      document.getElementById('card-next-btn').addEventListener('click', () => navigateBook(1));
+      document.getElementById('card-share-btn').addEventListener('click', () => {
+        if (selectedIndex !== -1 && PHYSICS.books[selectedIndex]) {
+          copyShareLink(PHYSICS.books[selectedIndex].book.id);
+        }
+      });
+
+      // View Toggle Button (3D vs 2D List)
+      document.getElementById('toggle-view-btn').addEventListener('click', () => {
+        toggleViewMode(!AppState.is3DView);
+      });
+
+      // Motion Toggle Button
+      const motionBtn = document.getElementById('toggle-motion-btn');
+      const motionIndicator = document.getElementById('motion-indicator');
+      const motionLabel = document.getElementById('motion-label');
+
+      function updateMotionUI() {
+        if (AppState.reducedMotion) {
+          motionIndicator.className = 'w-2 h-2 rounded-full bg-stone-500';
+          motionLabel.textContent = 'Still';
+          showToast('Reduced Motion active (still shelf)', 'info');
+        } else {
+          motionIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+          motionLabel.textContent = 'Motion';
+        }
+      }
+
+      motionBtn.addEventListener('click', () => {
+        AppState.reducedMotion = !AppState.reducedMotion;
+        updateMotionUI();
+      });
+      updateMotionUI();
+
+      // Add Essay Modal Controls
+      const addModal = document.getElementById('add-modal');
+      const openAddBtn = document.getElementById('open-add-modal-btn');
+      const closeAddBtn = document.getElementById('close-add-modal-btn');
+      const cancelAddBtn = document.getElementById('cancel-add-btn');
+      const addForm = document.getElementById('add-essay-form');
+
+      openAddBtn.addEventListener('click', () => {
+        addModal.classList.remove('hidden');
+      });
+
+      function closeAddModal() {
+        addModal.classList.add('hidden');
+        addForm.reset();
+      }
+
+      closeAddBtn.addEventListener('click', closeAddModal);
+      cancelAddBtn.addEventListener('click', closeAddModal);
+
+      // Color Palette Buttons inside Add Modal
+      const paletteBtns = document.querySelectorAll('.color-palette-btn');
+      const hiddenColor = document.getElementById('selected-color');
+      const customColor = document.getElementById('input-custom-color');
+
+      paletteBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          paletteBtns.forEach(b => b.classList.replace('ring-white', 'ring-transparent'));
+          btn.classList.replace('ring-transparent', 'ring-white');
+          hiddenColor.value = btn.dataset.color;
+        });
+      });
+
+      customColor.addEventListener('input', (e) => {
+        paletteBtns.forEach(b => b.classList.replace('ring-white', 'ring-transparent'));
+        hiddenColor.value = e.target.value;
+      });
+
+      // Add Essay Form Submit Handler
+      addForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const url = document.getElementById('input-url').value.trim();
+        const title = document.getElementById('input-title').value.trim();
+        const bengaliTitle = document.getElementById('input-bengali-title').value.trim();
+        const author = document.getElementById('input-author').value.trim();
+        const issue = document.getElementById('input-issue').value.trim() || String(AppState.essays.length + 1).padStart(2, '0');
+        const rawTopics = document.getElementById('input-topics').value.trim();
+        const description = document.getElementById('input-description').value.trim();
+        const color = hiddenColor.value || '#991b1b';
+
+        const topics = rawTopics.split(',').map(t => t.trim()).filter(Boolean);
+
+        const newEssay = {
+          id: 'essay-' + Date.now(),
+          issue: issue,
+          title: title,
+          bengaliTitle: bengaliTitle,
+          author: author,
+          url: url,
+          publication: "User Added / Marxbadi Path",
+          description: description,
+          topics: topics.length > 0 ? topics : ["General"],
+          color: color,
+          accentColor: "#fef08a",
+          motif: "lenin-star",
+          height: 2.2 + (Math.random() * 0.15),
+          thickness: 0.32,
+          lean: (Math.random() - 0.5) * 0.08
+        };
+
+        AppState.essays.push(newEssay);
+        saveEssaysToStorage();
+
+        // Refresh 3D shelf and 2D catalogue
+        rebuild3DBooks();
+        renderTopicButtons();
+        render2DCatalogue();
+        closeAddModal();
+
+        showToast(`Added "${title}" to Arka's Library!`, 'success');
+      });
+
+      // Export JSON buttons
+      document.getElementById('export-json-btn').addEventListener('click', exportEssaysJSON);
+      document.getElementById('footer-export-btn').addEventListener('click', exportEssaysJSON);
+
+      // Keyboard Accessibility
+      window.addEventListener('keydown', (e) => {
+        // Escape shelves book or closes modal
+        if (e.key === 'Escape') {
+          if (!addModal.classList.contains('hidden')) {
+            closeAddModal();
+          } else if (selectedIndex !== -1) {
+            shelveActiveBook();
+          }
+        }
+
+        // Left / Right arrows navigate books when reading card is open
+        if (selectedIndex !== -1) {
+          if (e.key === 'ArrowLeft') {
+            navigateBook(-1);
+          } else if (e.key === 'ArrowRight') {
+            navigateBook(1);
+          }
+        }
+
+        // '/' focuses search
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
+    });
+
+    function toggleViewMode(want3D) {
+      AppState.is3DView = want3D;
+      const view3D = document.getElementById('view-3d-wrapper');
+      const view2D = document.getElementById('view-2d-wrapper');
+      const label = document.getElementById('view-mode-label');
+
+      if (want3D) {
+        view3D.classList.remove('hidden');
+        view2D.classList.add('hidden');
+        label.textContent = 'List View';
+        onWindowResize();
+      } else {
+        view3D.classList.add('hidden');
+        view2D.classList.remove('hidden');
+        label.textContent = '3D Shelf';
+      }
+    }
+  </script>
+</body>
+</html>
